@@ -1,13 +1,42 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 	// curl -X POST -d '{"id":"will-be-omitted","title":"awesomeness"}' http://localhost:3333/articles
 )
+
+type Mouton struct {
+	Id     int     `json:"id"`
+	Name   string  `json:"name"`
+	Age    float32 `json:"age"`
+	Weight float32 `json:"weight"`
+}
+
+// Database représente la base de données en mémoire.
+var Database = make(map[int]Mouton)
+var mutex sync.RWMutex
+var currentID int
+
+func GetMoutons(w http.ResponseWriter, r *http.Request) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	moutons := make([]Mouton, len(Database))
+	i := 0
+	for _, mouton := range Database {
+		moutons[i] = mouton
+		i++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(moutons)
+}
 
 func main() {
 	fmt.Println("111")
@@ -29,11 +58,4 @@ func main() {
 	})
 
 	http.ListenAndServe(":3333", r)
-}
-
-type Mouton struct {
-	Id     int
-	Name   string
-	Age    float32
-	Weight float32
 }
